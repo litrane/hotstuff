@@ -9,7 +9,6 @@ package hotstuffpb
 import (
 	context "context"
 	fmt "fmt"
-
 	gorums "github.com/relab/gorums"
 	encoding "google.golang.org/grpc/encoding"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -149,6 +148,20 @@ func (c *Configuration) Timeout(ctx context.Context, in *TimeoutMsg, opts ...gor
 	c.Configuration.Multicast(ctx, cd, opts...)
 }
 
+// Reference imports to suppress errors if they are not otherwise used.
+var _ emptypb.Empty
+
+// ProposeBatch is a quorum call invoked on all nodes in configuration c,
+// with the same argument in, and returns a combined result.
+func (c *Configuration) ProposeBatch(ctx context.Context, in *BatchEc, opts ...gorums.CallOption) {
+	cd := gorums.QuorumCallData{
+		Message: in,
+		Method:  "hotstuffpb.Hotstuff.ProposeBatch",
+	}
+
+	c.Configuration.Multicast(ctx, cd, opts...)
+}
+
 // QuorumSpec is the interface of quorum functions for Hotstuff.
 type QuorumSpec interface {
 	gorums.ConfigOption
@@ -190,6 +203,7 @@ type Hotstuff interface {
 	Timeout(ctx gorums.ServerCtx, request *TimeoutMsg)
 	NewView(ctx gorums.ServerCtx, request *SyncInfo)
 	Fetch(ctx gorums.ServerCtx, request *BlockHash) (response *Block, err error)
+	ProposeBatch(ctx gorums.ServerCtx, request *BatchEc)
 }
 
 func RegisterHotstuffServer(srv *gorums.Server, impl Hotstuff) {
@@ -217,10 +231,12 @@ func RegisterHotstuffServer(srv *gorums.Server, impl Hotstuff) {
 		req := in.Message.(*BlockHash)
 		defer ctx.Release()
 		resp, err := impl.Fetch(ctx, req)
-		select {
-		case finished <- gorums.WrapMessage(in.Metadata, resp, err):
-		case <-ctx.Done():
-		}
+		gorums.SendMessage(ctx, finished, gorums.WrapMessage(in.Metadata, resp, err))
+	})
+	srv.RegisterHandler("hotstuffpb.Hotstuff.ProposeBatch", func(ctx gorums.ServerCtx, in *gorums.Message, _ chan<- *gorums.Message) {
+		req := in.Message.(*BatchEc)
+		defer ctx.Release()
+		impl.ProposeBatch(ctx, req)
 	})
 }
 

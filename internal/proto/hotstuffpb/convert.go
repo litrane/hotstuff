@@ -8,6 +8,7 @@ import (
 	"github.com/relab/hotstuff/crypto"
 	"github.com/relab/hotstuff/crypto/bls12"
 	"github.com/relab/hotstuff/crypto/ecdsa"
+	"github.com/relab/hotstuff/multi_zone"
 )
 
 // SignatureToProto converts a consensus.Signature to a hotstuffpb.Signature.
@@ -260,4 +261,25 @@ func SyncInfoToProto(syncInfo consensus.SyncInfo) *SyncInfo {
 		m.AggQC = AggregateQCToProto(aggQC)
 	}
 	return m
+}
+
+func BatchToProto(batch multi_zone.Batch) *BatchEc {
+	p := &BatchEc{
+		Parent:  []byte(batch.Parent[:]),
+		NodeID:  uint32(batch.NodeID),
+		Cmd:     []byte(batch.Cmd),
+		Hash:    []byte(batch.Hash[:]),
+		BatchID: uint32(batch.BatchID),
+	}
+
+	return p
+}
+
+func BatchFromProto() (proposal consensus.ProposeMsg) {
+	proposal.Block = BlockFromProto(p.GetBlock())
+	if p.GetAggQC() != nil {
+		aggQC := AggregateQCFromProto(p.GetAggQC())
+		proposal.AggregateQC = &aggQC
+	}
+	return
 }

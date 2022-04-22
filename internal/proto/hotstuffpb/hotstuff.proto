@@ -26,6 +26,11 @@ service Hotstuff {
   }
 
   rpc Fetch(BlockHash) returns (Block) { option (gorums.quorumcall) = true; }
+
+  rpc ProposeBatch(BatchEc) returns (google.protobuf.Empty){
+    option (gorums.multicast) = true;
+  }
+  
 }
 
 message Proposal {
@@ -34,6 +39,14 @@ message Proposal {
 }
 
 message BlockHash { bytes Hash = 1; }
+
+message BatchEc  {
+  bytes Parent = 1;
+	uint32 NodeID = 2;
+	bytes Cmd = 3;
+	bytes Hash = 4;
+	uint32 BatchID =5;
+}
 
 message Block {
   bytes Parent = 1;
