@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -61,6 +62,12 @@ func (cs *consensusBase) InitConsensusModule(mods *Modules, opts *OptionsBuilder
 	cs.mods.EventLoop().RegisterHandler(ProposeMsg{}, func(event interface{}) {
 		cs.OnPropose(event.(ProposeMsg))
 	})
+	cs.mods.EventLoop().RegisterHandler(BatchMsg{}, func(event interface{}) {
+		cs.OnProposeBatch(event.(BatchMsg))
+	})
+}
+func (cs *consensusBase) OnProposeBatch(batch BatchMsg) {
+	fmt.Println(batch.BatchID)
 }
 
 // StopVoting ensures that no voting happens in a view earlier than `view`.

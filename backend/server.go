@@ -185,9 +185,10 @@ func (impl *serviceImpl) Timeout(ctx gorums.ServerCtx, msg *hotstuffpb.TimeoutMs
 	}
 	impl.srv.mods.EventLoop().AddEvent(timeoutMsg)
 }
-func (srv *Server) ProposeBatch(ctx gorums.ServerCtx, batch *hotstuffpb.BatchEc) error {
-	
-	b := hotstuffpb.BatchFromProto(batch)
+func (impl *serviceImpl) ProposeBatch(ctx gorums.ServerCtx, request *hotstuffpb.BatchEc) {
+
+	b := hotstuffpb.BatchFromProto(request)
 
 	impl.srv.mods.EventLoop().AddEvent(b)
+	//return nil
 }

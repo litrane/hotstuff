@@ -275,11 +275,15 @@ func BatchToProto(batch multi_zone.Batch) *BatchEc {
 	return p
 }
 
-func BatchFromProto() (proposal consensus.ProposeMsg) {
-	proposal.Block = BlockFromProto(p.GetBlock())
-	if p.GetAggQC() != nil {
-		aggQC := AggregateQCFromProto(p.GetAggQC())
-		proposal.AggregateQC = &aggQC
-	}
-	return
+func BatchFromProto (batch *BatchEc) (a consensus.BatchMsg){
+	var parent consensus.Hash
+	copy(parent[:],batch.Parent)
+	var hash   consensus.Hash
+	copy(hash[:],batch.Hash)
+	 a.Parent=parent
+	a.NodeID=hotstuff.ID(batch.NodeID)
+	a.Cmd=consensus.Command(batch.Cmd)
+	a.Hash=hash
+	a.BatchID=batch.BatchID
+	return 
 }

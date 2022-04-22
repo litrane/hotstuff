@@ -13,6 +13,13 @@ type ProposeMsg struct {
 	Block       *Block       // The block that is proposed.
 	AggregateQC *AggregateQC // Optional AggregateQC
 }
+type BatchMsg struct {
+	Parent  Hash
+	NodeID  hotstuff.ID
+	Cmd     Command
+	Hash    Hash
+	BatchID uint32
+}
 
 // VoteMsg is sent to the leader by replicas voting on a proposal.
 type VoteMsg struct {
