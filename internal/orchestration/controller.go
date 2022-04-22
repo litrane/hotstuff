@@ -57,19 +57,19 @@ func (e *Experiment) Run() (err error) {
 		}
 	}()
 
-	err = e.assignReplicasAndClients()
+	err = e.assignReplicasAndClients()//给每个服务器建立n个replica
 	if err != nil {
 		return err
 	}
 
 	e.Logger.Info("Creating replicas...")
-	cfg, err := e.createReplicas()
+	cfg, err := e.createReplicas()//创建replica
 	if err != nil {
 		return fmt.Errorf("failed to create replicas: %w", err)
 	}
 
 	e.Logger.Info("Starting replicas...")
-	err = e.startReplicas(cfg)
+	err = e.startReplicas(cfg)//grpc执行每个host replica
 	if err != nil {
 		return fmt.Errorf("failed to start replicas: %w", err)
 	}
@@ -145,12 +145,15 @@ func (e *Experiment) createReplicas() (cfg *orchestrationpb.ReplicaConfiguration
 			opts.CertificateKey = keyChain.CertificateKey
 			req.Replicas[opts.ID] = opts
 		}
-		wcfg, err := worker.CreateReplica(req)
+		wcfg, err := worker.CreateReplica(req)//grpc调用创建n个replica
 		if err != nil {
 			return nil, err
 		}
-
-		for id, replicaCfg := range wcfg.GetReplicas() {
+		// type RemoteWorker struct {
+		// 	send *protostream.Writer
+		// 	recv *protostream.Reader
+		// }
+		for id, replicaCfg := range wcfg.GetReplicas() {//返回replica端口号
 			if internalAddr != "" {
 				replicaCfg.Address = internalAddr
 			} else {
@@ -258,6 +261,7 @@ func (e *Experiment) assignReplicasAndClients() (err error) {
 			// copy the replica opts
 			replicaOpts := proto.Clone(e.ReplicaOpts).(*orchestrationpb.ReplicaOpts)
 			replicaOpts.ID = uint32(nextReplicaID)
+			fmt.Println(nextReplicaID,host)
 			replicaOpts.ByzantineStrategy = byzantineStrategy
 
 			e.hostsToReplicas[host] = append(e.hostsToReplicas[host], nextReplicaID)
@@ -281,7 +285,7 @@ func (e *Experiment) startReplicas(cfg *orchestrationpb.ReplicaConfiguration) (e
 	for host, worker := range e.Hosts {
 		go func(host string, worker RemoteWorker) {
 			req := &orchestrationpb.StartReplicaRequest{
-				Configuration: cfg.GetReplicas(),
+				Configuration: cfg.GetReplicas(),//所有的全局replica
 				IDs:           getIDs(host, e.hostsToReplicas),
 			}
 			_, err := worker.StartReplica(req)

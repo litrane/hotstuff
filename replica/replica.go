@@ -2,6 +2,7 @@
 package replica
 
 import (
+	"fmt"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -50,6 +51,7 @@ type Replica struct {
 	cfg       *backend.Config
 	hsSrv     *backend.Server
 	hs        *consensus.Modules
+	MultiChain   *MultiChain
 
 	execHandlers map[cmdID]func(*empty.Empty, error)
 	cancel       context.CancelFunc
@@ -74,7 +76,7 @@ func New(conf Config, builder consensus.Builder) (replica *Replica) {
 		cancel:       func() {},
 		done:         make(chan struct{}),
 	}
-
+    
 	replicaSrvOpts := conf.ReplicaServerOptions
 	if conf.TLS {
 		replicaSrvOpts = append(replicaSrvOpts, gorums.WithGRPCServerOptions(
@@ -100,12 +102,13 @@ func New(conf Config, builder consensus.Builder) (replica *Replica) {
 
 	builder.Register(
 		srv.cfg,                // configuration
-		srv.hsSrv,              // event handling
+		srv.hsSrv,              // event handling//服务器
 		srv.clientSrv,          // executor
 		srv.clientSrv.cmdCache, // acceptor and command queue
 	)
-	srv.hs = builder.Build()
-
+	srv.hs = builder.Build()//初始化modules
+	srv.MultiChain = newMultiChain(srv.hs.ID())
+	//srv
 	return srv
 }
 
@@ -122,8 +125,15 @@ func (srv *Replica) Connect(replicas []backend.ReplicaInfo) error {
 
 // Start runs the replica in a goroutine.
 func (srv *Replica) Start() {
-	var ctx context.Context
+	var ctx context.Context//上下文
 	ctx, srv.cancel = context.WithCancel(context.Background())
+	go func() {
+		for {
+			srv.MultiChain.pack(srv.clientSrv.cmdCache)
+			// srv.Node.Multi...
+		}
+		
+	}()
 	go func() {
 		srv.Run(ctx)
 		close(srv.done)
@@ -139,12 +149,13 @@ func (srv *Replica) Stop() {
 
 // Run runs the replica until the context is cancelled.
 func (srv *Replica) Run(ctx context.Context) {
-	srv.hs.Synchronizer().Start(ctx)
-	srv.hs.Run(ctx)
+	srv.hs.Synchronizer().Start(ctx)//同步视图
+	srv.hs.Run(ctx)//启动事件监听
 }
 
 // Close closes the connections and stops the servers used by the replica.
 func (srv *Replica) Close() {
+	fmt.Println(len(srv.MultiChain.ChainPool[srv.hs.ID()]))
 	srv.clientSrv.Stop()
 	srv.cfg.Close()
 	srv.hsSrv.Stop()

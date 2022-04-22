@@ -48,7 +48,7 @@ use 'hotstuff help run' to view all possible parameters for this command.`,
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := rootCmd.Execute(); err != nil { //执行cmd指令
 		fmt.Println(err)
 		os.Exit(1)
 	}

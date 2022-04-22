@@ -37,7 +37,7 @@ Then, you must use the '--ssh-config' parameter to specify the location of your 
 (or omit it to use ~/.ssh/config). Then, you must specify the list of remote machines to connect to
 using the '--host' parameter. This should be a comma separated list of hostnames or ip addresses.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		runController()
+		runController()//执行controller，将命令参数转化为代码参数后实例化experiment
 	},
 }
 
@@ -151,23 +151,23 @@ func runController() {
 		Fgprof:              viper.GetBool("fgprof-profile"),
 		Metrics:             viper.GetStringSlice("metrics"),
 		MeasurementInterval: viper.GetDuration("measurement-interval"),
-	})
+	})//设置远程服务器
 	checkf("Failed to deploy workers: %v", err)
 
 	errors := make(chan error)
 
-	experiment.Hosts = make(map[string]orchestration.RemoteWorker)
+	experiment.Hosts = make(map[string]orchestration.RemoteWorker)//grpc
 
 	for host, session := range sessions {
 		experiment.Hosts[host] = orchestration.NewRemoteWorker(
 			protostream.NewWriter(session.Stdin()), protostream.NewReader(session.Stdout()),
-		)
+		)//基于session构造远程worker
 		go stderrPipe(session.Stderr(), errors)
 	}
 
 	if worker || len(hosts) == 0 {
 		worker, wait := localWorker(outputDir, viper.GetStringSlice("metrics"), viper.GetDuration("measurement-interval"))
-		defer wait()
+		defer wait()//没有远程服务器就创造本地worker
 		experiment.Hosts["localhost"] = worker
 	}
 
@@ -179,10 +179,10 @@ func runController() {
 	checkf("failed to unmarshal hosts-config: %v", err)
 
 	for _, cfg := range hostConfigs {
-		experiment.HostConfigs[cfg.Name] = cfg
+		experiment.HostConfigs[cfg.Name] = cfg//配置服务器参数
 	}
 
-	err = experiment.Run()
+	err = experiment.Run()//开始实验
 	checkf("failed to run experiment: %v", err)
 
 	for _, session := range sessions {

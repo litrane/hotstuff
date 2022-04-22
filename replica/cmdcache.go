@@ -3,7 +3,10 @@ package replica
 import (
 	"container/list"
 	"context"
+	"crypto/sha256"
 	"sync"
+
+	"github.com/relab/hotstuff"
 
 	"github.com/relab/hotstuff/consensus"
 	"github.com/relab/hotstuff/internal/proto/clientpb"
@@ -11,10 +14,102 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type Batch struct {
+	Parent  consensus.Hash
+	NodeID  hotstuff.ID
+	Cmd     consensus.Command
+	Hash    consensus.Hash
+	BatchID uint32
+}
+
+func (b *Batch) ToBytes() []byte {
+	buf := b.Parent[:]
+	buf = append(buf, []byte(b.Cmd)...)
+	buf = append(buf, []byte(b.NodeID.ToBytes())...)
+	return buf
+}
+
+func NewBatch(parent consensus.Hash, id hotstuff.ID, cmd consensus.Command, batchID uint32) *Batch {
+	b := &Batch{
+		Parent:  parent,
+		NodeID:  id,
+		Cmd:     cmd,
+		BatchID: batchID,
+	}
+	// cache the hash immediately because it is too racy to do it in Hash()
+	b.Hash = sha256.Sum256(b.ToBytes())
+	return b
+}
+
+type MultiChain struct {
+	ChainPool map[hotstuff.ID]([]Batch)
+	ID        uint32
+	NodeID    hotstuff.ID
+}
+
+func newMultiChain(id hotstuff.ID) *MultiChain {
+	return &MultiChain{
+		ChainPool: make(map[hotstuff.ID]([]Batch)),
+		ID:        0,
+		NodeID:    id,
+	}
+}
+
+func (c *MultiChain) add(id hotstuff.ID, b *Batch) {
+	c.ChainPool[id] = append(c.ChainPool[id], *b)
+}
+
+func (c *MultiChain) deleteByHash(h consensus.Hash) {
+	for key, value := range c.ChainPool {
+		for id, batch := range value {
+			if batch.Hash == h {
+				c.ChainPool[key] = c.ChainPool[key][id+1:]
+				break
+			}
+		}
+	}
+}
+func (c *MultiChain) pack(cache *cmdCache) {
+	for cache.cache.Len() <= cache.batchSize {
+		//<-cache.cc
+		batch := new(clientpb.Batch)
+		for i := 0; i < cache.batchSize; i++ {
+			elem := cache.cache.Front()
+			if elem == nil {
+				break
+			}
+			//cache.cache.Remove(elem)
+			cmd := elem.Value.(*clientpb.Command)
+			batch.Commands = append(batch.Commands, cmd)
+		}
+		ba, err := cache.marshaler.Marshal(batch)
+		if err != nil {
+			cache.mods.Logger().Errorf("Failed to marshal batch: %v", err)
+		}
+
+		cmd := consensus.Command(ba)
+		b := new(Batch)
+
+		var genesisHash [32]byte
+		if len(c.ChainPool[c.NodeID]) == 0 {
+			b = NewBatch(genesisHash, c.NodeID, cmd, c.ID)
+		} else {
+			b = NewBatch(c.ChainPool[c.NodeID][len(c.ChainPool[c.NodeID])-1].Hash, c.NodeID, cmd, c.ID)
+		}
+		c.ID++
+		c.add(c.NodeID, b)
+		cache.mods.Logger().Infof("Faaa")
+		//b.Hash=
+		//c.ChainPool[cache.mods.ID()]=append(c.ChainPool[cache.mods.ID()],b)
+	}
+
+}
+
 type cmdCache struct {
 	mut           sync.Mutex
 	mods          *modules.Modules
 	c             chan struct{}
+	cc            chan int
 	batchSize     int
 	serialNumbers map[uint32]uint64 // highest proposed serial number per client ID
 	cache         list.List
@@ -45,6 +140,7 @@ func (c *cmdCache) addCommand(cmd *clientpb.Command) {
 		return
 	}
 	c.cache.PushBack(cmd)
+	//	fmt.Println(cmd.ClientID, c.mods.ID())
 	if c.cache.Len() >= c.batchSize {
 		// notify Get that we are ready to send a new batch.
 		select {

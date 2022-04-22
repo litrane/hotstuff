@@ -35,7 +35,13 @@ type DeployConfig struct {
 }
 
 // Deploy deploys the hotstuff binary to a group of servers and starts a worker on the given port.
-func Deploy(g iago.Group, cfg DeployConfig) (workers map[string]WorkerSession, err error) {
+func Deploy(g iago.Group, cfg DeployConfig) (workers map[string]WorkerSession, err error) {//使用iago进行远程命令执行
+	// type WorkerSession struct {
+	// 	stdin  io.WriteCloser
+	// 	stdout io.ReadCloser
+	// 	stderr io.ReadCloser
+	// 	cmd    iago.CmdRunner
+	// }
 	w := workerSetup{
 		cfg:     cfg,
 		workers: make(map[string]WorkerSession),

@@ -55,7 +55,7 @@ type Worker struct {
 }
 
 // Run runs the worker until it receives a command to quit.
-func (w *Worker) Run() error {
+func (w *Worker) Run() error { //根据指令进行replica调用
 	for {
 		msg, err := w.recv.ReadAny()
 		if err != nil {
@@ -129,7 +129,7 @@ func (w *Worker) createReplicas(req *orchestrationpb.CreateReplicaRequest) (*orc
 			return nil, err
 		}
 
-		r.StartServers(replicaListener, clientListener)
+		r.StartServers(replicaListener, clientListener)//启动监听
 		w.replicas[hotstuff.ID(cfg.GetID())] = r
 
 		resp.Replicas[cfg.GetID()] = &orchestrationpb.ReplicaInfo{
@@ -244,13 +244,13 @@ func (w *Worker) startReplicas(req *orchestrationpb.StartReplicaRequest) (*orche
 		if err != nil {
 			return nil, err
 		}
-		err = replica.Connect(cfg)
+		err = replica.Connect(cfg)//连接所有
 		if err != nil {
 			return nil, err
 		}
 		defer func(id uint32) {
 			w.metricsLogger.Log(&types.StartEvent{Event: types.NewReplicaEvent(id, time.Now())})
-			replica.Start()
+			replica.Start()//启动
 		}(id)
 	}
 	return &orchestrationpb.StartReplicaResponse{}, nil

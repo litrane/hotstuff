@@ -7,6 +7,8 @@ import (
 
 	"github.com/relab/gorums"
 	"github.com/relab/hotstuff"
+
+	//"github.com/relab/hotstuff/replica/cmdcache"
 	"github.com/relab/hotstuff/consensus"
 	"github.com/relab/hotstuff/internal/proto/hotstuffpb"
 	"google.golang.org/grpc"
@@ -14,6 +16,14 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
+
+type Batch struct {
+	Parent  consensus.Hash
+	NodeID  hotstuff.ID
+	Cmd     consensus.Command
+	Hash    consensus.Hash
+	BatchID uint32
+}
 
 // Replica provides methods used by hotstuff to send messages to replicas.
 type Replica struct {
@@ -45,6 +55,18 @@ func (r *Replica) Vote(cert consensus.PartialCert) {
 	pCert := hotstuffpb.PartialCertToProto(cert)
 	r.node.Vote(ctx, pCert, gorums.WithNoSendWaiting())
 }
+
+// Vote sends the partial certificate to the other replica.
+// func (r *Replica) SendBatch(batch *cmdCache.Batch) {
+// 	if r.node == nil {
+// 		return
+// 	}
+// 	var ctx context.Context
+// 	r.sendBatchCancel()
+// 	ctx, r.sendBatchCancel = context.WithCancel(context.Background())
+// 	pCert := hotstuffpb.PartialCertToProto(cert)
+// 	r.node.Vote(ctx, pCert, gorums.WithNoSendWaiting())
+// }
 
 // NewView sends the quorum certificate to the other replica.
 func (r *Replica) NewView(msg consensus.SyncInfo) {

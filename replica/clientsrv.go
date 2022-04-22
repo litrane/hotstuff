@@ -34,7 +34,9 @@ func newClientServer(conf Config, srvOpts []gorums.ServerOption) (srv *clientSrv
 		cmdCache:     newCmdCache(int(conf.BatchSize)),
 		hash:         sha256.New(),
 	}
+	
 	clientpb.RegisterClientServer(srv.srv, srv)
+
 	return srv
 }
 
@@ -54,6 +56,7 @@ func (srv *clientSrv) Start(addr string) error {
 }
 
 func (srv *clientSrv) StartOnListener(lis net.Listener) {
+
 	go func() {
 		err := srv.srv.Serve(lis)
 		if err != nil {
