@@ -29,8 +29,8 @@ func (b *Batch) ToBytes() []byte {
 	return buf
 }
 
-func NewBatch(parent consensus.Hash, id hotstuff.ID, cmd consensus.Command, batchID uint32) *Batch {
-	b := &Batch{
+func NewBatch(parent consensus.Hash, id hotstuff.ID, cmd consensus.Command, batchID uint32) *consensus.BatchMsg {
+	b := &consensus.BatchMsg{
 		Parent:  parent,
 		NodeID:  id,
 		Cmd:     cmd,
@@ -42,20 +42,20 @@ func NewBatch(parent consensus.Hash, id hotstuff.ID, cmd consensus.Command, batc
 }
 
 type MultiChain struct {
-	ChainPool map[hotstuff.ID]([]Batch)
+	ChainPool map[hotstuff.ID]([]consensus.BatchMsg)
 	ID        uint32
 	NodeID    hotstuff.ID
 }
 
 func newMultiChain(id hotstuff.ID) *MultiChain {
 	return &MultiChain{
-		ChainPool: make(map[hotstuff.ID]([]Batch)),
+		ChainPool: make(map[hotstuff.ID]([]consensus.BatchMsg)),
 		ID:        0,
 		NodeID:    id,
 	}
 }
 
-func (c *MultiChain) add(id hotstuff.ID, b *Batch) {
+func (c *MultiChain) add(id hotstuff.ID, b *consensus.BatchMsg) {
 	c.ChainPool[id] = append(c.ChainPool[id], *b)
 }
 
@@ -69,7 +69,7 @@ func (c *MultiChain) deleteByHash(h consensus.Hash) {
 		}
 	}
 }
-func (c *MultiChain) pack(cache *cmdCache) {
+func (c *MultiChain) pack(cache *cmdCache) *consensus.BatchMsg {
 	for cache.cache.Len() <= cache.batchSize {
 		//<-cache.cc
 		batch := new(clientpb.Batch)
@@ -88,7 +88,7 @@ func (c *MultiChain) pack(cache *cmdCache) {
 		}
 
 		cmd := consensus.Command(ba)
-		b := new(Batch)
+		b := new(consensus.BatchMsg)
 
 		var genesisHash [32]byte
 		if len(c.ChainPool[c.NodeID]) == 0 {
@@ -99,10 +99,11 @@ func (c *MultiChain) pack(cache *cmdCache) {
 		c.ID++
 		c.add(c.NodeID, b)
 		cache.mods.Logger().Infof("Faaa")
+		return b
 		//b.Hash=
 		//c.ChainPool[cache.mods.ID()]=append(c.ChainPool[cache.mods.ID()],b)
 	}
-
+	return nil
 }
 
 type cmdCache struct {

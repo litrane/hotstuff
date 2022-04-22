@@ -350,6 +350,8 @@ type Configuration interface {
 	Timeout(msg TimeoutMsg)
 	// Fetch requests a block from all the replicas in the configuration.
 	Fetch(ctx context.Context, hash Hash) (block *Block, ok bool)
+
+	ProposeBatch(batch *BatchMsg)
 }
 
 //go:generate mockgen -destination=../internal/mocks/consensus_mock.go -package=mocks . Consensus

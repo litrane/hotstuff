@@ -2,7 +2,6 @@
 package backend
 
 import (
-	"github.com/relab/hotstuff/multi_zone"
 	"context"
 	"fmt"
 
@@ -208,7 +207,8 @@ func (cfg *Config) Propose(proposal consensus.ProposeMsg) {
 	p := hotstuffpb.ProposalToProto(proposal)
 	cfg.cfg.Propose(ctx, p, gorums.WithNoSendWaiting())
 }
-func (cfg *Config) ProposeBatch(batch multi_zone.Batch) {
+
+func (cfg *Config) ProposeBatch(batch *consensus.BatchMsg) {
 	if cfg.cfg == nil {
 		return
 	}
@@ -218,6 +218,7 @@ func (cfg *Config) ProposeBatch(batch multi_zone.Batch) {
 	p := hotstuffpb.BatchToProto(batch)
 	cfg.cfg.ProposeBatch(ctx, p, gorums.WithNoSendWaiting())
 }
+
 // Timeout sends the timeout message to all replicas.
 func (cfg *Config) Timeout(msg consensus.TimeoutMsg) {
 	if cfg.cfg == nil {

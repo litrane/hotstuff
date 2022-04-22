@@ -20,7 +20,12 @@ type BatchMsg struct {
 	Hash    Hash
 	BatchID uint32
 }
-
+func (b *BatchMsg) ToBytes() []byte {
+	buf := b.Parent[:]
+	buf = append(buf, []byte(b.Cmd)...)
+	buf = append(buf, []byte(b.NodeID.ToBytes())...)
+	return buf
+}
 // VoteMsg is sent to the leader by replicas voting on a proposal.
 type VoteMsg struct {
 	ID          hotstuff.ID // the ID of the replica who sent the message.

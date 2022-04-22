@@ -8,7 +8,6 @@ import (
 	"github.com/relab/hotstuff/crypto"
 	"github.com/relab/hotstuff/crypto/bls12"
 	"github.com/relab/hotstuff/crypto/ecdsa"
-	"github.com/relab/hotstuff/multi_zone"
 )
 
 // SignatureToProto converts a consensus.Signature to a hotstuffpb.Signature.
@@ -263,7 +262,7 @@ func SyncInfoToProto(syncInfo consensus.SyncInfo) *SyncInfo {
 	return m
 }
 
-func BatchToProto(batch multi_zone.Batch) *BatchEc {
+func BatchToProto(batch *consensus.BatchMsg) *BatchEc {
 	p := &BatchEc{
 		Parent:  []byte(batch.Parent[:]),
 		NodeID:  uint32(batch.NodeID),
@@ -275,15 +274,15 @@ func BatchToProto(batch multi_zone.Batch) *BatchEc {
 	return p
 }
 
-func BatchFromProto (batch *BatchEc) (a consensus.BatchMsg){
+func BatchFromProto(batch *BatchEc) (a consensus.BatchMsg) {
 	var parent consensus.Hash
-	copy(parent[:],batch.Parent)
-	var hash   consensus.Hash
-	copy(hash[:],batch.Hash)
-	 a.Parent=parent
-	a.NodeID=hotstuff.ID(batch.NodeID)
-	a.Cmd=consensus.Command(batch.Cmd)
-	a.Hash=hash
-	a.BatchID=batch.BatchID
-	return 
+	copy(parent[:], batch.Parent)
+	var hash consensus.Hash
+	copy(hash[:], batch.Hash)
+	a.Parent = parent
+	a.NodeID = hotstuff.ID(batch.NodeID)
+	a.Cmd = consensus.Command(batch.Cmd)
+	a.Hash = hash
+	a.BatchID = batch.BatchID
+	return
 }

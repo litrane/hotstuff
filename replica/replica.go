@@ -129,8 +129,12 @@ func (srv *Replica) Start() {
 	ctx, srv.cancel = context.WithCancel(context.Background())
 	go func() {
 		for {
-			srv.MultiChain.pack(srv.clientSrv.cmdCache)
+			batch:=srv.MultiChain.pack(srv.clientSrv.cmdCache)
 			// srv.Node.Multi...
+			if batch!=nil{
+				srv.hs.Configuration().ProposeBatch(batch)
+			}
+			
 		}
 		
 	}()
